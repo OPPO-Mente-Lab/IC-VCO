@@ -1,0 +1,13 @@
+diff --git a/vlmeval/dataset/utils/yorn.py b/vlmeval/dataset/utils/yorn.py
+--- a/vlmeval/dataset/utils/yorn.py
++++ b/vlmeval/dataset/utils/yorn.py
+@@ -265,7 +265,8 @@ def YOrN_auxeval(model, line):
+     prompt = YOrN_match_prompt(line)
+     retry = 5
+     for i in range(retry):
+-        output = model.generate(prompt, temperature=0.5 * i)
++        temperature = min(0.5 * i, 1.5)
++        output = model.generate(prompt, temperature=temperature)
+         ans = YOrN_Extraction(output)
+         if ans != 'Unknown':
+             return ans

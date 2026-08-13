@@ -1,0 +1,116 @@
+diff --git a/vlmeval/vlm/llava/llava.py b/vlmeval/vlm/llava/llava.py
+index c0f87ed..b8dde0b 100644
+--- a/vlmeval/vlm/llava/llava.py
++++ b/vlmeval/vlm/llava/llava.py
+@@ -1,5 +1,6 @@
+ import copy
+ import logging
++import os
+ import os.path as osp
+ import string
+ import warnings
+@@ -234,6 +235,7 @@ class LLaVA_Next(BaseModel):
+                                   LlavaNextForConditionalGeneration, LlavaNextProcessor)
+ 
+         self.model_path = model_path
++        attn_implementation = os.environ.get("ICVCO_FORCE_ATTN_IMPLEMENTATION")
+         if "34b" in model_path.lower():
+             self.processor = LlavaNextProcessor.from_pretrained(
+                 self.model_path, use_fast=False
+@@ -256,14 +258,14 @@ class LLaVA_Next(BaseModel):
+                     self.model_path,
+                     torch_dtype=torch.float16,
+                     low_cpu_mem_usage=True,
+-                    use_flash_attention_2=True,
++                    **({"attn_implementation": attn_implementation} if attn_implementation else {}),
+                 )
+             else:
+                 model = LlavaNextForConditionalGeneration.from_pretrained(
+                     self.model_path,
+                     torch_dtype=torch.float16,
+                     low_cpu_mem_usage=True,
+-                    use_flash_attention_2=True,
++                    **({"attn_implementation": attn_implementation} if attn_implementation else {}),
+                 )
+         else:
+             if "interleave" in model_path.lower():
+@@ -387,7 +389,7 @@ class LLaVA_Next(BaseModel):
+         prompt = self.processor.apply_chat_template(
+             conversation, add_generation_prompt=True
+         )
+-        inputs = self.processor(prompt, images, return_tensors="pt").to(
++        inputs = self.processor(text=prompt, images=images, return_tensors="pt").to(
+             "cuda", torch.float16
+         )
+         output = self.model.generate(**inputs, **self.kwargs)
+@@ -718,11 +720,25 @@ class LLaVA_OneVision_HF(BaseModel):
+     IMAGE_TOKEN_INDEX = -200
+ 
+     def __init__(self, model_path="llava-hf/llava-onevision-qwen2-0.5b-ov-hf", **kwargs):
+-        from transformers import AutoProcessor, LlavaOnevisionForConditionalGeneration
++        from transformers import AutoModelForImageTextToText, AutoProcessor
++
+         assert model_path is not None, "Model path must be provided."
+-        self.model = LlavaOnevisionForConditionalGeneration.from_pretrained(
+-            model_path, torch_dtype=torch.float16, low_cpu_mem_usage=True
+-        ).to('cuda')
++        model_kwargs = {
++            "torch_dtype": torch.bfloat16,
++            "low_cpu_mem_usage": True,
++        }
++        try:
++            import flash_attn  # noqa: F401
++
++            attn_implementation = os.environ.get("ICVCO_FORCE_ATTN_IMPLEMENTATION")
++            if attn_implementation:
++                model_kwargs["attn_implementation"] = attn_implementation
++        except ImportError:
++            pass
++
++        self.model = AutoModelForImageTextToText.from_pretrained(
++            model_path, **model_kwargs
++        ).eval().to('cuda')
+         self.processor = AutoProcessor.from_pretrained(model_path)
+ 
+         self.video_kwargs = kwargs.get("video_kwargs", {})
+@@ -730,6 +746,17 @@ class LLaVA_OneVision_HF(BaseModel):
+         self.nframe = kwargs.get("nframe", 8)
+         self.fps = 1
+         self.model_path = model_path
++        kwargs_default = dict(
++            do_sample=False,
++            temperature=0,
++            max_new_tokens=128,
++            top_p=None,
++            num_beams=1,
++        )
++        kwargs_default.update(kwargs)
++        kwargs_default.pop("video_kwargs", None)
++        kwargs_default.pop("nframe", None)
++        self.kwargs = kwargs_default
+ 
+     def generate_inner_image(self, message, dataset=None):
+         content, images = "", []
+@@ -753,9 +780,9 @@ class LLaVA_OneVision_HF(BaseModel):
+             }
+         ]
+         prompt = self.processor.apply_chat_template(conversation, add_generation_prompt=True)
+-        inputs = self.processor(images=images, text=prompt, return_tensors="pt").to('cuda', torch.float16)
++        inputs = self.processor(images=images, text=prompt, return_tensors="pt").to('cuda', torch.bfloat16)
+ 
+-        output = self.model.generate(**inputs, max_new_tokens=2048)
++        output = self.model.generate(**inputs, **self.kwargs)
+         return self.processor.decode(output[0][inputs.input_ids.shape[1]:], skip_special_tokens=True)
+ 
+     def generate_inner_video(self, message, dataset=None):
+@@ -791,8 +818,8 @@ class LLaVA_OneVision_HF(BaseModel):
+         ]
+         prompt = self.processor.apply_chat_template(conversation, add_generation_prompt=True)
+ 
+-        inputs = self.processor(videos=video_frames, text=prompt, return_tensors="pt").to('cuda', torch.float16)
+-        output = self.model.generate(**inputs, max_new_tokens=2048)
++        inputs = self.processor(videos=video_frames, text=prompt, return_tensors="pt").to('cuda', torch.bfloat16)
++        output = self.model.generate(**inputs, **self.kwargs)
+         return self.processor.decode(output[0][inputs.input_ids.shape[1]:], skip_special_tokens=True)
+ 
+     def load_video(self, video_path, max_frames_num, fps=1, force_sample=False):

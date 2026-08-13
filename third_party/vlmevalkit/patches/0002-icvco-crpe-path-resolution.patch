@@ -1,0 +1,62 @@
+diff --git a/vlmeval/vlm/base.py b/vlmeval/vlm/base.py
+--- a/vlmeval/vlm/base.py
++++ b/vlmeval/vlm/base.py
+@@ -1,11 +1,27 @@
+ import logging
++import os
+ import warnings
+ from abc import abstractmethod
+ 
+ from vlmeval.dataset import DATASET_TYPE
+ from vlmeval.smp import concat_images_vlmeval, encode_image_to_base64, listinstr, parse_file
+ 
+ 
++def _resolve_legacy_crpe_image_path(path):
++    marker = f'{os.sep}images{os.sep}CRPE{os.sep}'
++    if marker not in path or os.path.exists(path):
++        return path
++
++    candidates = (
++        path.replace(marker, f'{os.sep}images{os.sep}CRPE_EXIST{os.sep}', 1),
++        path.replace(marker, f'{os.sep}images{os.sep}CRPE_RELATION{os.sep}', 1),
++    )
++    for candidate in candidates:
++        if os.path.exists(candidate):
++            return candidate
++    return path
++
++
+ class BaseModel:
+ 
+     INTERLEAVE = False
+@@ -78,11 +94,15 @@ class BaseModel:
+             return [dict(type='text', value=inputs)]
+         elif self.check_content(inputs) == 'dict':
+             assert 'type' in inputs and 'value' in inputs
++            if inputs['type'] == 'image':
++                inputs = dict(inputs)
++                inputs['value'] = _resolve_legacy_crpe_image_path(inputs['value'])
+             return [inputs]
+         elif self.check_content(inputs) == 'liststr':
+             res = []
+             for s in inputs:
++                s = _resolve_legacy_crpe_image_path(s)
+                 mime, pth = parse_file(s)
+                 if mime is None or mime == 'unknown':
+                     res.append(dict(type='text', value=s))
+                 else:
+@@ -91,10 +111,13 @@ class BaseModel:
+         elif self.check_content(inputs) == 'listdict':
+             for item in inputs:
+                 assert 'type' in item and 'value' in item
+-                mime, s = parse_file(item['value'])
++                value = item['value']
++                if item['type'] == 'image':
++                    value = _resolve_legacy_crpe_image_path(value)
++                mime, s = parse_file(value)
+                 if mime is None:
+                     assert item['type'] == 'text'
+                 else:
+                     assert mime.split('/')[0] == item['type']
+                     item['value'] = s
+             return inputs

@@ -1,0 +1,26 @@
+{
+  "ICVCO": {
+    "format": "hf_dataset_package",
+    "path": "data/ICVCO",
+    "configs": {
+      "sft": {
+        "split": "train",
+        "schema": "standard_sft",
+        "prompt_col": "prompt",
+        "completion_col": "completion",
+        "images_col": "images"
+      },
+      "preference": {
+        "split": "train",
+        "schema": "standard_preference",
+        "supports_multi_image_preference": true,
+        "prompt_col": "prompt",
+        "chosen_col": "chosen",
+        "rejected_col": "rejected",
+        "images_col": "images",
+        "chosen_response_spans_col": "chosen_response_spans",
+        "rejected_response_spans_col": "rejected_response_spans"
+      }
+    }
+  }
+}

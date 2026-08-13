@@ -1,0 +1,43 @@
+{
+  "model": {
+    "llava_onevision_custom": {
+      "class": "LLaVA_OneVision_HF",
+      "model_path": "llava-hf/llava-onevision-qwen2-7b-ov-hf",
+      "do_sample": false,
+      "temperature": 0,
+      "top_p": null,
+      "num_beams": 1,
+      "max_new_tokens": 128
+    }
+  },
+  "data": {
+    "HallusionBench": {
+      "class": "ImageYORNDataset",
+      "dataset": "HallusionBench"
+    },
+    "AMBER": {
+      "class": "ImageYORNDataset",
+      "dataset": "AMBER"
+    },
+    "CRPE_EXIST": {
+      "class": "CRPE",
+      "dataset": "CRPE_EXIST"
+    },
+    "CRPE_RELATION": {
+      "class": "CRPE",
+      "dataset": "CRPE_RELATION"
+    },
+    "R-Bench-Dis": {
+      "class": "ImageMCQDataset",
+      "dataset": "R-Bench-Dis"
+    },
+    "R-Bench-Ref": {
+      "class": "ImageMCQDataset",
+      "dataset": "R-Bench-Ref"
+    },
+    "BLINK": {
+      "class": "ImageMCQDataset",
+      "dataset": "BLINK"
+    }
+  }
+}

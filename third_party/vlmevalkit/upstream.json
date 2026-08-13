@@ -1,0 +1,23 @@
+{
+  "upstream_url": "https://github.com/open-compass/VLMEvalKit.git",
+  "patch_target_commit": "58fdeb6b980bda22096d912d70d1c858dedc84fd",
+  "patch_target_checked_at": "2026-06-01",
+  "upstream_license": "Apache-2.0",
+  "patches": [
+    {
+      "file": "patches/0001-icvco-llava-loading.patch",
+      "required": true,
+      "summary": "Support optional attn_implementation override for LLaVA-NeXT loading, call processors with explicit keyword arguments, and make LLaVA-OneVision-HF load through AutoModelForImageTextToText with config-driven generation kwargs."
+    },
+    {
+      "file": "patches/0002-icvco-crpe-path-resolution.patch",
+      "required": true,
+      "summary": "Resolve legacy CRPE image paths to CRPE_EXIST or CRPE_RELATION before VLMEvalKit parses image inputs."
+    },
+    {
+      "file": "patches/0003-icvco-yorn-temperature-cap.patch",
+      "required": true,
+      "summary": "Caps Y/N judge retry temperature below DashScope's OpenAI-compatible API upper bound."
+    }
+  ]
+}

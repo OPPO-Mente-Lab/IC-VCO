@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "icvco"
+version = "0.1.0"
+description = "Training and evaluation code for IC-VCO visual contrastive preference optimization."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "accelerate==1.11.0",
+    "datasets>=2.19",
+    "numpy>=1.24",
+    "pandas>=2.0",
+    "peft==0.18.1",
+    "Pillow>=10.0",
+    "pyarrow>=14.0",
+    "torch==2.7.1",
+    "transformers==4.57.1",
+    "trl==0.26.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+eval = ["vlmevalkit"]
+train-extra = ["bitsandbytes", "deepspeed"]
+
+[project.scripts]
+icvco-train-sft = "icvco.cli.train_sft:main"
+icvco-train-vco = "icvco.cli.train_vco:main"
+icvco-merge-ckpt = "icvco.cli.merge_ckpt:main"
+icvco-print-eval-result = "icvco.cli.print_eval_result:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
