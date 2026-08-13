@@ -13,3 +13,4 @@ tests/
 .codex/
 .agents/
 data/
+.env
